@@ -342,9 +342,9 @@ app = Flask(__name__)
 
 
 copilot_metrics_cache = {"timestamp": 0, "data": None}
-CACHE_TTL_SECONDS = os.environ.get(
+CACHE_TTL_SECONDS = int(os.environ.get(
     "CACHE_TTL_SECONDS", 4 * 60 * 60
-)  # Default to 4 hours if not set
+))  # Default to 4 hours if not set
 
 
 @app.route("/metrics")

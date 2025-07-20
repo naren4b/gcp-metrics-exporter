@@ -12,15 +12,15 @@ This service fetches GitHub Copilot metrics for your organization and exposes th
 
 2. **Run the container:**
 
-   ```sh
-   docker run -d \
+```sh
+docker run -d \
      -e GHC_TOKEN=your_github_copilot_token \
      -e ORG=your_github_org \
-     -e CACHE_TTL_SECONDS= 3600 \
+     -e CACHE_TTL_SECONDS=3600 \
      -p 8000:8000 \
      --name copilot-metrics-exporter \
      copilot-metrics-exporter
-   ```
+```
 
    - Replace `your_github_copilot_token` with your GitHub Copilot API token.
    - Replace `your_github_org` with your GitHub organization name.
@@ -31,6 +31,15 @@ This service fetches GitHub Copilot metrics for your organization and exposes th
    Open [http://localhost:8000/metrics](http://localhost:8000/metrics) in your browser or Prometheus scrape config.
 
 ---
+
+# Update the prometheus configuration 
+```
+  - job_name: 'gcp'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['<HOST-IP>:8000']
+
+```
 
 **Note:**
 
