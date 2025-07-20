@@ -22,7 +22,7 @@ docker run -d \
      -e CACHE_TTL_SECONDS=3600 \
      -p 8000:8000 \
      --name copilot-metrics-exporter \
-     copilot-metrics-exporter
+     copilot-metrics-exporter:latest
 ```
 
    - Replace `your_github_copilot_token` with your GitHub Copilot API token.
