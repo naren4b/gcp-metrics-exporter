@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Copy application code
 COPY src/ ./src/
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r src/requirements.txt
 
 # Expose port for Flask/Gunicorn
 EXPOSE 8000
