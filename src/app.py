@@ -39,14 +39,14 @@ gauges = {
 
 # Add a counter for failed or empty responses with status_code label
 failed_metrics_counter = Counter(
-    "copilot_metrics_failed_response_counter",
+    "copilot_exporter_requests_failed_total",
     "Number of failed or empty responses from get_copilot_metrics",
     ["status_code"]
 )
 
 # Add a counter for total requests to get_copilot_metrics
 total_request_counter = Counter(
-    "copilot_metrics_total_request_counter",
+    "copilot_exporter_requests_total",
     "Total number of requests to get_copilot_metrics"
 )
 
