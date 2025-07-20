@@ -10,4 +10,4 @@ ENV ORG=<your-org>
 
 COPY . .
 
-CMD [ "python", "./app.py" ]
+CMD [ "python", "./src/app.py" ]

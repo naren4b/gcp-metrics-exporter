@@ -15,9 +15,10 @@ This project provides a containerized service to fetch GitHub Copilot metrics fo
 
 ```
 gcp-metric-exporter/
-  ├── app.py              # Flask app exposing /metrics
-  ├── requirements.txt    # Python dependencies
-  ├── Dockerfile          # Container build file
+  ├── src/
+  │     └── app.py           # Flask app exposing /metrics
+  ├── requirements.txt       # Python dependencies
+  ├── Dockerfile             # Container build file
   └── ...
 ```
 
@@ -56,7 +57,7 @@ pip install -r requirements.txt
 #### Locally
 
 ```bash
-python app.py
+python src/app.py
 ```
 
 The metrics endpoint will be available at: [http://localhost:8000/metrics](http://localhost:8000/metrics)
