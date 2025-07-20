@@ -5,6 +5,7 @@ import requests
 import json
 import os
 import logging
+import time
 
 """
 GitHub Copilot Metrics Exporter
@@ -41,17 +42,28 @@ gauges = {
 failed_metrics_counter = Counter(
     "copilot_exporter_requests_failed_total",
     "Number of failed or empty responses from get_copilot_metrics",
-    ["status_code"]
+    ["status_code"],
 )
 
-# Add a counter for total requests to get_copilot_metrics
+# Add a counter for total requests to /metrics
 total_request_counter = Counter(
-    "copilot_exporter_requests_total",
-    "Total number of requests to get_copilot_metrics"
+    "copilot_exporter_requests_total", "Total number of requests to get_copilot_metrics"
 )
+
+# Total number of requests to Github metrics Api
+total_github_api_request_counter = Counter(
+    "copilot_exporter_github_api_requests",
+    "Total number of requests to Github metrics Api",
+)
+# Total number of cache hits for get_copilot_metrics
+total_cache_hit_counter = Counter(
+    "copilot_exporter_cache_hits", "Total number of cache hits for get_copilot_metrics"
+)
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 def get_copilot_metrics(GHC_TOKEN, ORG):
     """
@@ -64,8 +76,7 @@ def get_copilot_metrics(GHC_TOKEN, ORG):
     Raises:
         EnvironmentError: If GHC_TOKEN or ORG is not set.
     """
-    total_request_counter.inc()  # Increment total request counter
-
+    total_github_api_request_counter.inc()  # Increment total GitHub API request counter
     if not GHC_TOKEN or not ORG:
         logger.error("GHC_TOKEN and ORG environment variables must be set.")
         failed_metrics_counter.labels(status_code="env_missing").inc()
@@ -107,8 +118,12 @@ def get_copilot_metrics(GHC_TOKEN, ORG):
     latest_data = data[-1] if isinstance(data, list) and data else data
     latest_org_data = {"org": ORG}
     latest_org_data.update(latest_data)
-    logger.info(f"Fetched {len(data) if isinstance(data, list) else 1} entries for organization {ORG}")
-    logger.debug(f"Latest data for organization {ORG}: {json.dumps(latest_org_data, indent=2)}")
+    logger.info(
+        f"Fetched {len(data) if isinstance(data, list) else 1} entries for organization {ORG}"
+    )
+    logger.debug(
+        f"Latest data for organization {ORG}: {json.dumps(latest_org_data, indent=2)}"
+    )
     return latest_org_data
 
 
@@ -326,6 +341,12 @@ def update_metrics(org, data):
 app = Flask(__name__)
 
 
+copilot_metrics_cache = {"timestamp": 0, "data": None}
+CACHE_TTL_SECONDS = os.environ.get(
+    "CACHE_TTL_SECONDS", 4 * 60 * 60
+)  # Default to 4 hours if not set
+
+
 @app.route("/metrics")
 def metrics():
     """
@@ -334,9 +355,21 @@ def metrics():
     Returns:
         Response: Prometheus metrics exposition format.
     """
+    total_request_counter.inc()  # Increment total request counter
     GHC_TOKEN = os.environ.get("GHC_TOKEN")
     ORG = os.environ.get("ORG")
-    data = get_copilot_metrics(GHC_TOKEN, ORG)
+    now = time.time()
+    if (
+        copilot_metrics_cache["data"] is not None
+        and (now - copilot_metrics_cache["timestamp"]) < CACHE_TTL_SECONDS
+    ):
+        logger.info("Returning Copilot metrics from cache.")
+        data = copilot_metrics_cache["data"]
+        total_cache_hit_counter.inc()
+    else:
+        data = get_copilot_metrics(GHC_TOKEN, ORG)
+        copilot_metrics_cache["data"] = data
+        copilot_metrics_cache["timestamp"] = now
     update_metrics(ORG, data)
     return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
 
