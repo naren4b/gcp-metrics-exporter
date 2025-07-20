@@ -341,6 +341,13 @@ def metrics():
     return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
 
 
+@app.route("/test_metrics")
+def test_metrics():
+    total_request_counter.inc()
+    failed_metrics_counter.labels(status_code="test").inc()
+    return "Test metrics incremented"
+
+
 if __name__ == "__main__":
     print("Starting Flask server on port 8000 with /metrics endpoint")
     app.run(host="0.0.0.0", port=8000)
