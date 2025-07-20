@@ -58,6 +58,3 @@ venv.bak/
 # Logs
 *.log
 
-# Local test files
-test/
-tests/
