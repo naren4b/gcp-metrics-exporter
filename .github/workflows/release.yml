@@ -11,20 +11,29 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Get date in DD-MM-YYYY format
         id: date
         run: echo "date=$(date +'%d-%m-%Y')" >> $GITHUB_OUTPUT
+
+      - name: Get short SHA
+        id: short_sha
+        run: echo "sha_short=${GITHUB_SHA::6}" >> $GITHUB_OUTPUT
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -32,5 +41,5 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/copilot-metrics-exporter:${{ steps.date.outputs.date }}-${{ github.sha.substr(0,6) }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/copilot-metrics-exporter:${{ steps.date.outputs.date }}-${{ steps.short_sha.outputs.sha_short }}
             ${{ secrets.DOCKERHUB_USERNAME }}/copilot-metrics-exporter:latest
