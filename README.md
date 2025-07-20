@@ -2,9 +2,20 @@
 
 This service fetches GitHub Copilot metrics for your organization and exposes them as Prometheus metrics.
 
+- Periodically pull metrics from GitHub Enterprise.
+- Expose these metrics via a standard /metrics HTTP endpoint, consumable by Prometheus.
+- Store the historical data in Prometheus's time-series database (TSDB).
+- Visualize the trends and key insights using Grafana.
 
 ![alt text](resources/GitHub-Copilot-Telemetry-design.jpg)
-
+## Architecture at a Glance
+The architecture is straightforward and integrates perfectly with standard observability practices:
+- **Developer Activity**: GitHub Copilot provides real-time assistance, influencing the developer's prompt and response patterns.
+- **Telemetry Flow**: This interaction generates telemetry data, which is crucial for understanding Copilot's effectiveness.
+- **Prometheus Exporter (My Solution)**: This is where gcp-metrics-exporter comes in. It periodically pulls the Copilot telemetry directly from GitHub Enterprise.
+- **Prometheus**: Our Prometheus instance is configured to scrape the /metrics endpoint exposed by the exporter. This pulls the processed telemetry data and stores it in its TSDB for long-term retention.
+- **Grafana**: Finally, Grafana connects to Prometheus to query and visualize this rich dataset, allowing us to build insightful dashboards.
+  
 ## Running with Docker
 
 1. **Build the Docker image:**
