@@ -2,12 +2,9 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
 # Copy application code
 COPY src/ ./src/
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Expose port for Flask/Gunicorn
 EXPOSE 8000
