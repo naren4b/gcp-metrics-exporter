@@ -1,9 +1,10 @@
 import json
-from prometheus_client import Gauge, generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client import Gauge, generate_latest, CONTENT_TYPE_LATEST, Counter
 from flask import Flask, Response
 import requests
 import json
 import os
+import logging
 
 """
 GitHub Copilot Metrics Exporter
@@ -36,6 +37,14 @@ gauges = {
     for name in metric_names
 }
 
+# Add a counter for failed or empty responses
+failed_metrics_counter = Counter(
+    "copilot_metrics_failed_responses",
+    "Number of failed or empty responses from get_copilot_metrics"
+)
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def get_copilot_metrics(GHC_TOKEN, ORG):
     """
@@ -45,8 +54,15 @@ def get_copilot_metrics(GHC_TOKEN, ORG):
         ORG (str): GitHub Enterprise organization name.
     Returns:
         dict: Latest Copilot metrics for the organization.
+    Raises:
+        EnvironmentError: If GHC_TOKEN or ORG is not set.
     """
-    print("Fetching GitHub Copilot metrics...")
+    if not GHC_TOKEN or not ORG:
+        logger.error("GHC_TOKEN and ORG environment variables must be set.")
+        failed_metrics_counter.inc()
+        raise EnvironmentError("GHC_TOKEN and ORG environment variables must be set.")
+
+    logger.info("Fetching GitHub Copilot metrics...")
     headers = {
         "Accept": "application/vnd.github+json",
         "Authorization": f"Bearer {GHC_TOKEN}",
@@ -54,23 +70,32 @@ def get_copilot_metrics(GHC_TOKEN, ORG):
     }
 
     url = f"https://api.github.com/enterprises/{ORG}/copilot/metrics"
-    print(f"Fetching metrics from {url} for organization {ORG}")
-    response = requests.get(url, headers=headers)
+    logger.info(f"Fetching metrics from {url} for organization {ORG}")
 
-    if response.status_code == 200:
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error fetching metrics: {e}")
+        failed_metrics_counter.inc()
+        return {}
+
+    try:
         data = response.json()
-        latest_data = data[-1] if isinstance(data, list) and data else data
-        latest_org_data = {"org": ORG}
-        latest_org_data.update(latest_data)
-        print(f"Fetched {len(data)} entries for organization {ORG}")
-        print(
-            f"Latest data for organization {ORG}: {json.dumps(latest_org_data,indent=2)}"
-        )
-        return latest_org_data
-    else:
-        print(f"Error: {response.status_code}")
-        print(f"Error: {response.content}")
-        return "{}"
+    except ValueError:
+        logger.error("Response content is not valid JSON.")
+        failed_metrics_counter.inc()
+        return {}
+
+    if not data:
+        failed_metrics_counter.inc()
+
+    latest_data = data[-1] if isinstance(data, list) and data else data
+    latest_org_data = {"org": ORG}
+    latest_org_data.update(latest_data)
+    logger.info(f"Fetched {len(data) if isinstance(data, list) else 1} entries for organization {ORG}")
+    logger.debug(f"Latest data for organization {ORG}: {json.dumps(latest_org_data, indent=2)}")
+    return latest_org_data
 
 
 def collect_metrics(data):

@@ -1,3 +1,4 @@
-flask>=3.1.1
-prometheus_client>=0.22.1
-requests>=2.32.4
+flask>=3.1.1,<4.0.0
+prometheus_client>=0.22.1,<1.0.0
+requests>=2.32.4,<3.0.0
+gunicorn>=21.2.0,<22.0.0  # Recommended for production WSGI server

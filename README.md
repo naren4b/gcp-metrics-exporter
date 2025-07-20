@@ -1,95 +1,32 @@
-# GCP Metric Exporter for GitHub Copilot
+# GitHub Copilot Metrics Exporter
 
-## Overview
+This service fetches GitHub Copilot metrics for your organization and exposes them as Prometheus metrics.
 
-This project provides a containerized service to fetch GitHub Copilot metrics for your GitHub Enterprise organization and expose them as Prometheus metrics via a `/metrics` HTTP endpoint. It is designed for easy integration with Prometheus, Grafana, and other observability tools. The service can be run standalone or as part of a larger monitoring stack (e.g., with Docker Compose and Nginx reverse proxy).
+## Running with Docker
 
-## Features
+1. **Build the Docker image:**
+   ```sh
+   docker build -t copilot-metrics-exporter .
+   ```
 
-- Fetches GitHub Copilot metrics using the GitHub API
-- Exposes metrics in Prometheus format at `/metrics`
-- Supports secure configuration via environment variables
-- Ready for containerized deployment (Docker)
+2. **Run the container:**
+   ```sh
+   docker run -d \
+     -e GHC_TOKEN=your_github_copilot_token \
+     -e ORG=your_github_org \
+     -p 8000:8000 \
+     copilot-metrics-exporter
+   ```
 
-## Directory Structure
+   - Replace `your_github_copilot_token` with your GitHub Copilot API token.
+   - Replace `your_github_org` with your GitHub organization name.
 
-```
-gcp-metric-exporter/
-  ├── src/
-  │     └── app.py           # Flask app exposing /metrics
-  ├── requirements.txt       # Python dependencies
-  ├── Dockerfile             # Container build file
-  └── ...
-```
+3. **Access the metrics endpoint:**
 
-## Prerequisites
+   Open [http://localhost:8000/metrics](http://localhost:8000/metrics) in your browser or Prometheus scrape config.
 
-- Python 3.9+
-- Docker (for containerized deployment)
-- GitHub Copilot Enterprise access
-- Prometheus (for scraping metrics)
+---
 
-## Setup
-
-### 1. Clone the Repository
-
-```bash
-git clone <your-repo-url>
-cd gcp-metric-exporter
-```
-
-### 2. Configure Environment Variables
-
-```
-Set the following variables in your `.env` file:
-- `GHC_TOKEN`: GitHub Copilot API token (with required permissions)
-- `ORG`: Your GitHub Enterprise organization name
-```
-
-### 3. Install Dependencies (for local development)
-
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Run the Service
-
-#### Locally
-
-```bash
-python src/app.py
-```
-
-The metrics endpoint will be available at: [http://localhost:8000/metrics](http://localhost:8000/metrics)
-
-#### With Docker
-
-Build and run the container:
-
-```bash
-docker build -t gcp-metric-exporter .
-docker run --env-file .env -p 8000:8000 gcp-metric-exporter
-```
-
-### 5. Prometheus Configuration
-
-Add a scrape config to your Prometheus config:
-
-```yaml
-- job_name: "gcp-metric-exporter"
-  static_configs:
-    - targets: ["<host>:8000"]
-```
-
-## Security
-
-- Do not commit your real `.env` file or secrets to version control.
-- Use a secure GitHub token with the minimum required permissions.
-
-## License
-
-MIT License
-
-## Author
-
-Narendranath Panda / [nks](https://naren4b.github.io/nks/)
+**Note:**  
+- The container listens on port `8000` by default.
+- Make sure your GitHub token
