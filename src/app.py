@@ -37,10 +37,17 @@ gauges = {
     for name in metric_names
 }
 
-# Add a counter for failed or empty responses
+# Add a counter for failed or empty responses with status_code label
 failed_metrics_counter = Counter(
-    "copilot_metrics_failed_responses",
-    "Number of failed or empty responses from get_copilot_metrics"
+    "copilot_metrics_failed_response_counter",
+    "Number of failed or empty responses from get_copilot_metrics",
+    ["status_code"]
+)
+
+# Add a counter for total requests to get_copilot_metrics
+total_request_counter = Counter(
+    "copilot_metrics_total_request_counter",
+    "Total number of requests to get_copilot_metrics"
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -57,9 +64,11 @@ def get_copilot_metrics(GHC_TOKEN, ORG):
     Raises:
         EnvironmentError: If GHC_TOKEN or ORG is not set.
     """
+    total_request_counter.inc()  # Increment total request counter
+
     if not GHC_TOKEN or not ORG:
         logger.error("GHC_TOKEN and ORG environment variables must be set.")
-        failed_metrics_counter.inc()
+        failed_metrics_counter.labels(status_code="env_missing").inc()
         raise EnvironmentError("GHC_TOKEN and ORG environment variables must be set.")
 
     logger.info("Fetching GitHub Copilot metrics...")
@@ -75,20 +84,25 @@ def get_copilot_metrics(GHC_TOKEN, ORG):
     try:
         response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        status_code = getattr(e.response, "status_code", "http_error")
+        logger.error(f"HTTP error fetching metrics: {e}")
+        failed_metrics_counter.labels(status_code=str(status_code)).inc()
+        return {}
     except requests.exceptions.RequestException as e:
         logger.error(f"Error fetching metrics: {e}")
-        failed_metrics_counter.inc()
+        failed_metrics_counter.labels(status_code="request_exception").inc()
         return {}
 
     try:
         data = response.json()
     except ValueError:
         logger.error("Response content is not valid JSON.")
-        failed_metrics_counter.inc()
+        failed_metrics_counter.labels(status_code=str(response.status_code)).inc()
         return {}
 
     if not data:
-        failed_metrics_counter.inc()
+        failed_metrics_counter.labels(status_code=str(response.status_code)).inc()
 
     latest_data = data[-1] if isinstance(data, list) and data else data
     latest_org_data = {"org": ORG}
