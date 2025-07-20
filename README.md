@@ -2,6 +2,9 @@
 
 This service fetches GitHub Copilot metrics for your organization and exposes them as Prometheus metrics.
 
+
+![alt text](resources/GitHub-Copilot-Telemetry-design.jpg)
+
 ## Running with Docker
 
 1. **Build the Docker image:**
